@@ -1,0 +1,52 @@
+CAU2
+create view CAU2
+AS
+select Ton.MaVT,TenVT,sum(SoLuongX*DonGiaX)
+as'tien ban'
+from XUAT inner join Ton on XUAT.MaVT=Ton.MaVT
+group by Ton.MaVT,TenVT
+select * from CAU2
+-------------------------
+CAU3
+create view CAU3
+AS
+select Ton.TenVT,sum(SoLuongX) as'tongsl'
+from XUAT inner join Ton on XUAT.MaVT=Ton.MAVT
+group by Ton.TenVT
+select * from CAU3
+-------------------------
+CAU4
+create view CAU4
+AS
+select Ton.TenVT,sum(SoLuongN) as'tongsl'
+from NHAP inner join Ton on NHAP.MaVT=Ton.MAVT
+group by Ton.TenVT
+select * from CAU4
+------------------------
+CAU5
+create view CAU5
+AS
+select Ton.MaVT,Ton.TenVT,sum(SoLuongN)-sum(SoLuongX)+sum(SoLuongT) as 'tongton'
+from NHAP inner join Ton on NHAP.MaVT=Ton.MaVT
+		inner join XUAT on Ton.MaVT=XUAT.MaVT group by Ton.MaVT,Ton.TenVT
+select * from CAU5
+-------------------------
+CAU6
+create view CAU6
+AS
+select TenVT from Ton
+where SoLuongT=(select max(soluongT) from Ton)
+select * from CAU6
+-------------------------
+CAU7
+create view CAU7
+AS
+select Ton.MaVT,Ton.TenVT
+from Ton inner join XUAT on Ton.MaVT=XUAT.MaVT
+group by Ton.MaVT,Ton.TenVT having sum(SoLuongX)>=100
+select * from CAU7
+-------------------------
+CAU8
+create view CAU8
+AS
+select XUAT.month(NgayX),XUAT.year(NgayX)
