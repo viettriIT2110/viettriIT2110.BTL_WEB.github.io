@@ -1,0 +1,95 @@
+chương 4. thủ tục - stored procedure
+-- thủ tục khác hàm là thủ tục chỉ thực thi không trả về
+--> thủ tục không có returns
+-- thủ tục tương tự hàm void trong c/c++
+-- thủ tục có 2 loại thủ tục:
+    1. thủ tục không có output
+ 2. thủ tục có output  (rất hay sử dụng trong LT)
+-----------------------------------------
+1. thủ tục không output:
+   thủ tục này dùng để thực thi 1 công việc nào  đó.
+-- cú pháp:
+create proc tenthutuc(@thambien1 kieudl1,@thambien2 kieudl2,...)
+as
+begin
+  ...................
+end
+-- sửa thủ tục:  create <-> alter
+-- xóa thủ tục: drop proc tenthutuc
+-- gọi thủ tục:
+exec/execute tenthutuc doiso1,doiso2,...
+---------------------------------------------
+     Ton(mavt,tenvt,soluongT)
+  Nhap(sohdn,mavt,ngayN,soluongN,dongiaN)
+  Xuat(sohdx,mavt,ngayX,soluongx,dongiax)
+----------------------------------------------
+1. viết thủ tục nhập dữ liệu cho bảng Ton với các tham biến truyền 
+vào từ bàn phím là mavt,tenvt,soluongT. Hãy kiểm tra xem tenvt đã có
+trong bảng tồn trước đó hay chưa? nếu có rồi thì đưa ra thoog báo.
+---------------------------------------------
+create proc nhapbangTon(@mavt nchar(10),@tenvt nvarchar(20),@slt int)
+as
+begin
+   if(exists(select * from ton where tenvt=@tenvt))
+     print(N'Vật tư này đã tồn tại')
+   else
+     begin
+    insert into ton values(@mavt,@tenvt,@slt)
+    print(N'Nhập thành công')
+  end
+end
+-------------
+exec nhapbangTon 'vt10',N'Kẹo mút',300
+--
+select * from ton
+--
+exec nhapbangTon 'vt8',N'Kẹo hạt dẻ',300
+-----------------------
+     Ton(mavt,tenvt,soluongT)
+  Nhap(sohdn,mavt,ngayN,soluongN,dongiaN)
+  Xuat(sohdx,mavt,ngayX,soluongx,dongiax)
+---------------------------
+vd2. viết thủ tục nhập dữ liệu cho bảng Nhập với các tham biến truyền vào
+là sohdn,mavt,ngayN,soluongN,dongiaN. Hãy kiểm tra xem mavt truyền vào
+có trong bảng Ton hay chưa? Nếu chưa thì đưa ra thông báo?
+----------------------------
+create proc nhapbangNhap1(@sohdn nchar(10),@mvt nchar(10),
+                          @sln int,@dgn money,@ngayN date)
+as
+begin
+   if(not exists(select * from ton where mavt=@mvt))
+      print(N'Không có mavt này')
+   else
+      begin
+      insert into nhap values(@sohdn,@mvt,@sln,@dgn,@ngayN)
+  print(N'Successfully nhap')
+   end
+end
+--gọi thủ tục:
+exec nhapbangNhap1 'N10','vt15',300,10000,'3/2/2020'
+select * from ton
+exec nhapbangNhap1 'N10','vt8',300,10000,'3/2/2020'
+select * from nhap
+--vd3. viết thủ tục nhập dữ liệu vào bảng xuất với các tham biến sohdx,
+mavt,soluongx,dongiax,ngayx. Hãy kiểm tra xem mavt có trong bảng tồn 
+không? Nếu không thì đưa ra thông báo.
+--vd4. viết hàm xóa dữ liệu khỏi bảng nhập với sohdn nhập từ bàn phím.
+Hãy kiểm tra xem sohdn này có đúng không? Nếu không thì đưa ra tb.
+create proc xoabangNhap(@shdn nchar(10))
+as
+begin
+   if(not exists(select * from nhap where sohdn=@shdn))
+     print(N'Không có hóa đơn cần xóa')
+   else
+     begin
+     delete from nhap where sohdn = @shdn
+ print('Xoa thanh kong') 
+  end
+end
+select * from nhap
+exec xoabangNhap 'N10'
+vd5.-- xóa  bảng xuất với tham biến truyền vào là sohdx. hãy kiểm tra
+sohdx có tồn tại trong bảng xuất ko? Nếu ko thì
+đưa ra TB.
+vd6. xóa bảng Tồn với mavt nhập từ bàn phím. Hãy kiểm tra xem 
+mavt này có trong bảng Tồn hay ko? Nếu ko thì đưa ra TB.

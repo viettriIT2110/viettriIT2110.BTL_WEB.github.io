@@ -1,0 +1,155 @@
+chương 5. trigger --bẫy lỗi
+--mục đích trigger dùng để bắt lỗi, kiểm soát lỗi
+--cú pháp trigger:
+create trigger tentrigger
+on bangkiemsoat
+for insert/delete/update
+as
+begin
+   ........
+end
+--------------------------------
+--bảng kiểm soát: là bảng mà trigger này kiểm soát các tác vụ 
+--trên nó, mỗi lần thay đổi trên bảng --> trigger tương ứng
+sẽ tự động được kích hoạt -> bắt lỗi.
+--for insert: là tác vụ insert dữ liệu vào bảng kiểm soát, 
+trigger tương ứng với tác vụ này sẽ được kích hoạt và kiểm soát
+việc insert dữ liệu.
+--for delete: là tác vụ delete dữ liệu bảng kiểm soát, trigger 
+tương ứng với tác vụ này sẽ được kích hoạt và kiểm soát việc
+delete dữ liệu.
+--for update: là tác vụ update dữ liệu bảng kiểm soát, trigger
+tương ứng với tác vụ này sẽ được kích hoạt và kiểm soát việc 
+update dữ liệu.
+1. for insert:
+--trước khi insert được dữ liệu vào bảng kiểm soát sẽ có 1
+bảng tạm được sinh ra có tên là inserted, bảng tạm này có cấu 
+trúc tương tự bảng kiểm soát và có dữ liệu là dữ liệu chuẩn
+bị insert.
+--ví dụ: cho 3 bảng
+   Ton(mavt,tenvt,soluongT)
+   Nhap(sohdn,mavt,soluongN,dongiaN,ngayN)
+   Xuat(sohdx,mavt,soluongX,dongiaX,ngayX)
+---------------------
+1. viết trigger kiểm soát việc xuất vật tư, hãy kiểm tra xem
+mavt cần xuất có trong bảng Ton hay không? soluongX<=soluongT
+hay không? nếu thỏa mãn thì insert hóa đơn mới vào bảng xuat
+và cập nhật lại soluongT ở bảng tồn: soluongT=soluongT-SoluongX
+------------------------------------
+vd. insert into xuat values('x1','vt3',20,3000,'3/5/2020')
+--> trước khi insert được dữ liệu vào bảng xuat thì sẽ
+có 1 bảng tạm được sinh ra.
+       inserted(sohdx,mavt,soluongx,dongiax,ngayx)
+    inserted('x1','vt3',20,3000,'3/5/2020')
+--
+create trigger trg_chenXuat
+on xuat
+for insert 
+as
+begin
+  declare @mvt nchar(10)
+  set @mvt=(select mavt from inserted)
+  if(not exists(select * from ton where mavt=@mvt))
+    begin
+   raiserror(N'Không có vật tư này',16,1)--thông báo lỗi system 
+   rollback transaction -- quay trở về trạng thái đầu
+ end
+  else
+    begin
+   declare @slxuat int
+   declare @slton int
+   set @slxuat = (select soluongx from inserted)
+   set @slton =(select soluongt from ton where mavt=@mvt)
+   if(@slxuat >@slton)
+     begin
+   raiserror(N'Không đủ hàng bán',16,1)
+   rollback transaction
+ end
+   else --đã thỏa mãn tất cả
+        --cho phép bán --đã insert vào bảng xuat
+    update ton set soluongt=soluongt - @slxuat
+    where mavt= @mvt
+ end
+end
+select * from ton
+select * from xuat
+insert into xuat values('x13','vt3',2,30000,'3/4/2020')
+insert into xuat values('x14','vt2',7,2000,'3/4/2020')
+---------------------------------------------------------
+2.for delete:trước khi delete được dữ liệu từ bảng kiểm soát, sẽ có 1 bảng
+tạm được sinh ra có tên là deleted, bảng tạm này lưu trữ tạm thời
+dữ liệu chuẩn bị delete. bảng tạm này có cấu trúc tương tự bảng kiểm soát,
+có dữ liệu là dữ liệu chuẩn bị delete.
+-- viết 1 trigger kiểm soát việc xóa dữ liệu bảng xuat, hãy kiểm tra xem mavt
+cần xóa có trong bảng xuat không? nếu có thì hãy cho phép xóa và cập nhật
+lại dữ liệu bảng ton: soluongt = soluongt + soluongx
+-----------------------------------------------------
+create trigger trg_xoaXuat 
+on xuat
+for delete
+as
+begin
+  declare @mvt nchar(10)
+  set @mvt = (select mavt from deleted)
+  if(not exists(select * from xuat where mavt=@mvt))
+    begin
+   raiserror(N'Không có vật tư này',16,1)
+   rollback transaction
+ end
+  else
+    begin
+   declare @slx int
+   set @slx=(select soluongx from deleted)
+   update ton set soluongt = soluongt + @slx
+   where mavt=@mvt
+ end
+end
+select * from ton
+select * from xuat
+delete from xuat where sohdx='x14'
+---------------------------------
+3. for update: trước khi update dữ liệu bảng kiểm soát -> sẽ có 2 bảng tạm
+được sinh ra có tên là inserted và deleted. 2 bảng này có cấu trúc tương tự
+bảng kiểm soát, có dữ liệu là:
+    -- bảng deleted: là bảng chứa dữ liệu trước khi update
+ -- bảng inserted: là bảng chứa dữ liệu sau khi update
+-----------------------------------------------------------------
+vd. viết trigger kiểm soát việc cập nhật bảng xuat. hãy kiểm tra xem 
+mavt có trong bảng xuat ko? nếu thỏa mãn thì hãy kiểm tra xem 
+soluongsau - soluongtruoc <soluongton? nếu thỏa mãn thì cập nhật lại tồn.
+-------------------------------------------
+create trigger trg_CapNhatXuat
+on xuat
+for update
+as
+begin
+  declare @mavt nchar(10)
+  set @mavt=(select mavt from inserted)  --deleted
+  if(not exists(select * from xuat where mavt=@mavt))
+    begin
+   raiserror(N'Không tồn tại vật tư này',16,1)
+   rollback transaction
+ end 
+  else
+    begin
+   declare @sltruoc int
+   declare @slsau int
+   declare @slton int
+   set @sltruoc=(select soluongx from deleted)
+   set @slsau=(select soluongx from inserted)
+   set @slton=(select soluongt from ton where mavt=@mavt)
+   if((@slsau-@sltruoc)>@slton)
+     begin
+   raiserror(N'Không đủ hàng',16,1)
+   rollback transaction
+ end
+   else
+     update ton set soluongt=soluongt - (@slsau-@sltruoc)
+ where mavt=@mavt
+ end
+end
+----------------
+select * from ton
+select * from xuat
+update xuat set soluongx=15 where sohdx='x13'
+update xuat set soluongx=7 where sohdx='x13'

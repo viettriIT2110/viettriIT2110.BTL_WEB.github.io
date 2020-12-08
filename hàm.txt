@@ -1,0 +1,154 @@
+chương 4. Hàm -- function
+---------------------------------------
+--view: không thể tùy biến view --> không thể thay
+đổi kết xuất của view.
+vd. View đưa ra dssv lớp khmt1.
+create view dssv
+as
+   select masv,tensv,que,gioitinh
+   from sv inner join lop on sv.malop=lop.malop
+   where tenlop='KHMT1'
+--> view đưa ra dssv lớp KHMT2,3,...???
+--> có 1 cấu trúc tùy biến.
+--> Hàm
+------------------------------------------------
+--Hàm có 2 loại hàm:
+1. scalar valued function (Hàm trả về 1 giá trị cụ thể)
+2. table valued function (hàm trả về giá trị kiểu bảng)
+------------------------------------------------
+1. scalar valued function:
+-- cú pháp hàm:
+create function tenham(@thambien1 kieudl1,@thambien2 kieudl2,...)
+returns kieutrave
+as
+begin
+   declare @bien kieutrave  --biến cục bộ
+   .......................
+   return @bien
+end
+--Xóa hàm: drop function tenham
+--sửa lại hàm: thay create <--> Alter và chạy lại hàm
+-----------------------------
+vd1. viết hàm đưa ra tên vật tư khi biết mã vật tư nhập từ bàn phím.
+create function vd1(@mvt nchar(10))
+returns nvarchar(20)
+as
+begin
+  declare @tvt nvarchar(20)
+  --lệnh gán
+  set @tvt=(select tenvt from ton where mavt=@mvt)
+  return @tvt
+end
+---gọi hàm: select dbo.tenham(doiso1,doiso2,...)
+-------------------------------
+select dbo.vd1('vt3')
+select dbo.vd1('vt1')
+vd2. viết hàm đưa ra tổng tiền xuất của 1 mặt hàng có tên vt
+và ngayxuat nhập từ bàn phím.
+create function vd2(@tenvt nvarchar(20),@nx date)
+returns money
+as
+begin
+  declare @tong money
+  set @tong=(select sum(soluongx*dongiax)
+             from ton inner join xuat on ton.mavt=xuat.mavt
+  where tenvt=@tenvt and ngayx=@nx)
+  return @tong
+end
+---------
+select dbo.vd2(N'Kẹo kéo','3/1/2019')
+vd3. viết hàm tính tổng số lượng tồn của mặt hàng có tên vt
+nhập từ bàn phím, được nhập từ năm x đến năm y từ bàn phím.
+create function vd3(@tenvt nvarchar(20),@x int,@y int)
+returns int
+as
+begin
+  declare @tong int
+  set @tong=(select sum(soluongT) from ton inner join nhap
+                on ton.mavt=nhap.mavt
+  where tenvt=@tenvt and 
+  year(ngayn) between @x and @y
+  )
+  return @tong
+end
+-------------------------
+select dbo.vd3(N'Kẹo dừa',2022,2021)
+--------------
+vd4. viết hàm đưa ra số lượng xuất của mặt hàng được xuất
+vào ngày x và tên vật tư y được nhập từ bàn phím.
+vd5. viết hàm đếm có bao nhiêu loại vật tư được nhập vào năm x
+từ bàn phím.
+2. Hàm trả về giá trị kiểu bảng:
+Table valued function -- hàm trả về >1 giá trị -> đẩy vào
+    1 bảng (table) kết quả.
+--> rất hay sử dụng trong lập trình
+-- cú pháp:
+create function tenham(@thambien1 kieudl1,@thambien2 kieudl2,...)
+returns @bangtam table(
+                        truong1 kieudl11,
+ truong2 kieudl22,
+ ....
+  )
+as
+begin
+  ...................
+  insert into @bangtam
+                 select truong1,truong2,...
+  from ...
+  ...
+  return
+end
+-------------------------------------------------
+--gọi hàm:
+select * from tenham(doiso1,doiso2,...)
+--sửa nội dung hàm:
+thay create <->alter và chạy lại hàm
+--xóa hàm: 
+drop function tenham
+-------------------------------------------------
+vd1.
+     Ton(mavt,tenvt,soluongT)
+  Nhap(sohdn,mavt,ngayN,soluongN,dongiaN)
+  Xuat(sohdx,mavt,ngayX,soluongx,dongiax)
+ ------------------
+1. viết hàm đưa ra mã vt,tenvt của các vật tư nhập ngày x được
+nhập từ bàn phím.
+create function vdd(@ngayN date)
+returns @bang table(
+                    mavt nchar(10),
+ tenvt nvarchar(20)
+ )
+as
+begin
+  insert into @bang
+                  select ton.mavt,tenvt from ton inner join nhap
+                      on ton.mavt=nhap.mavt
+                  where ngayn=@ngayN  
+  return
+end
+--gọi hàm:
+select * from vdd('3/5/2020')
+select * from nhap
+vd2. viết hàm đưa ra mavt,tenvt,soluongT,soluongN, tiền nhập
+của các vật tư được nhập vào năm x và có đơn giá nhập >=y.
+create function vdd2(@x int,@y money)
+returns @bang table(
+                     mavt nchar(10),
+  tenvt nvarchar(20),
+  soluongT int,
+  soluongN int,
+  tiennhap money
+ )
+as
+begin
+  insert into @bang 
+                  select ton.mavt,tenvt,soluongT,soluongN,soluongN*dongiaN
+   from nhap inner join ton on nhap.mavt=ton.mavt
+   where year(ngayn)=@x and dongiaN>=@y
+  return
+end
+-----------------------
+select * from vdd2(2020,3000)
+----------------
+vd3. viết hàm đưa ra dssp(masp,tensp) được xuất vào ngày x, 
+nhập vào ngày y từ bàn phím.
